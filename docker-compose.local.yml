@@ -1,0 +1,33 @@
+volumes:
+  civil_registry_local_postgres_data: {}
+  civil_registry_local_postgres_data_backups: {}
+
+services:
+  django: &django
+    build:
+      context: .
+      dockerfile: ./compose/local/django/Dockerfile
+    image: civil_registry_local_django
+    container_name: civil_registry_local_django
+    depends_on:
+      - postgres
+    volumes:
+      - .:/app:z
+    env_file:
+      - ./.envs/.local/.django
+      - ./.envs/.local/.postgres
+    ports:
+      - '8000:8000'
+    command: /start
+
+  postgres:
+    build:
+      context: .
+      dockerfile: ./compose/local/postgres/Dockerfile
+    image: civil_registry_postgres
+    container_name: civil_registry_local_postgres
+    volumes:
+      - civil_registry_local_postgres_data:/var/lib/postgresql/data
+      - civil_registry_local_postgres_data_backups:/backups
+    env_file:
+      - ./.envs/.local/.postgres
