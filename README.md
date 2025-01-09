@@ -64,7 +64,7 @@ The API will be accessible at `http://127.0.0.1:8000/`.
 
 ## API Endpoint
 
-**POST /api/validate/**
+**POST /api/national-id/**
 
 **Request Headers:**
 
@@ -82,12 +82,12 @@ The API will be accessible at `http://127.0.0.1:8000/`.
 
 ```json
 {
-    "is_valid": true,
-    "national_id": "29001011234567",
-    "birth_date": "1990-01-01",
-    "governorate": "12",
-    "gender": "Male",
-    "error_message": null
+  "is_valid": true,
+  "id_number": "23301011294197",
+  "birth_date": "1933-01-01",
+  "governorate": "Dakahlia",
+  "gender": "Male",
+  "detail": ""
 }
 ```
 
@@ -105,12 +105,9 @@ The API will be accessible at `http://127.0.0.1:8000/`.
 
 ```json
 {
-    "is_valid": false,
-    "national_id": "12345",
-    "birth_date": null,
-    "governorate": null,
-    "gender": null,
-    "error_message": "Invalid National ID"
+  "is_valid": false,
+  "id_number": "123301011294197",
+  "detail": "National ID must be a 14-digit number."
 }
 ```
 
