@@ -1,3 +1,5 @@
+ID_REGEX = r"^\d{14}$"
+
 MIN_CENTURY_DIGIT = 2
 MAX_CENTURY_DIGIT = 3
 
