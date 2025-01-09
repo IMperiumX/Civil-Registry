@@ -1,35 +1,21 @@
+from django.core.validators import RegexValidator
 from rest_framework import serializers
-from rest_framework.exceptions import ValidationError
 
-from civil_registry.core.constants import MAX_CENTURY_DIGIT
-from civil_registry.core.constants import MIN_CENTURY_DIGIT
-from civil_registry.core.models import EgyptianNationalID
+from civil_registry.core.constants import ID_REGEX
 
 
 class NationalIDInputSerializer(serializers.Serializer):
-    national_id = serializers.CharField()
+    id_number = serializers.CharField(
+        validators=[
+            RegexValidator(
+                ID_REGEX,
+                "National ID must be a 14-digit number.",
+            ),
+        ],
+    )
 
-    def validate_national_id(self, value):
-        if not value.isdigit():
-            msg = f"Invalid national ID: {value}. Only digits are allowed."
-            raise ValidationError(msg)
-
-        if len(value) != EgyptianNationalID.ID_LENGTH:
-            msg = (
-                f"Invalid national ID length. "
-                f"Expected {EgyptianNationalID.ID_LENGTH} digits.",
-            )
-            raise ValidationError(msg)
-
-        century_digit = int(value[0])
-        if not (MIN_CENTURY_DIGIT <= century_digit <= MAX_CENTURY_DIGIT):
-            msg = (
-                f"Invalid century digit: {century_digit}. "
-                f"Must be between {MIN_CENTURY_DIGIT} and {MAX_CENTURY_DIGIT}.",
-            )
-            raise ValidationError(msg)
-
-        return value
+    class Meta:
+        fields = ["id_number"]
 
 
 class NationalIDSerializer(serializers.Serializer):
@@ -38,7 +24,7 @@ class NationalIDSerializer(serializers.Serializer):
     birth_date = serializers.DateField(required=False)
     governorate = serializers.CharField(required=False)
     gender = serializers.CharField(required=False)
-    error_message = serializers.CharField(default=None)
+    detail = serializers.CharField(default="")
 
     class Meta:
         fields = [
@@ -47,8 +33,8 @@ class NationalIDSerializer(serializers.Serializer):
             "birth_date",
             "governorate",
             "gender",
-            "error_message",
+            "detail",
         ]
 
     def get_is_valid(self, obj):
-        return not bool(obj.get("error_message"))
+        return not bool(obj.get("detail"))
