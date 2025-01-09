@@ -1,12 +1,11 @@
 import logging
 
-from rest_framework import status
 from rest_framework.views import exception_handler
 
 from .constants import MAX_CENTURY_DIGIT
 from .constants import MIN_CENTURY_DIGIT
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("core")
 
 
 def custom_exception_handler(exc, context):
@@ -14,15 +13,11 @@ def custom_exception_handler(exc, context):
     # to get the standard error response.
     response = exception_handler(exc, context)
 
-    msg = f"Unhandled exception: {exc}"
-    logger.exception(msg)
-
     if response is not None:
-        if response.status_code == status.HTTP_404_NOT_FOUND:
-            response.data = {"error": "Resource not found"}
-        elif response.status_code == status.HTTP_400_BAD_REQUEST:
-            response.data = {"error": "Internal server error"}
-
+        logger.exception(
+            response.data,
+            extra={"request_id": context["request"].request_id},
+        )
     return response
 
 
@@ -43,10 +38,7 @@ class InvalidNationalIDCharactersError(Exception):
 
     def __init__(self, id_number):
         self.id_number = id_number
-        super().__init__(
-            f"Invalid national ID: {id_number}. "
-            f"Only digits are allowed.",
-        )
+        super().__init__(f"Invalid national ID: {id_number}. Only digits are allowed.")
 
 
 class InvalidCenturyDigitError(Exception):
