@@ -60,3 +60,7 @@ class InvalidBirthDateError(Exception):
         self.month = month
         self.day = day
         super().__init__(f"Invalid birth date: {year}-{month}-{day}.")
+
+
+class InvalidConfigurationError(Exception):
+    pass
