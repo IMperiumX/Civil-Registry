@@ -76,11 +76,13 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 
 MIDDLEWARE = [
+    "civil_registry.core.middleware.requestid.RequestIDMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "civil_registry.core.middleware.apitrack.APICallTrackingMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "corsheaders.middleware.CorsMiddleware",
@@ -126,50 +128,68 @@ X_FRAME_OPTIONS = "DENY"
 # https://docs.djangoproject.com/en/dev/ref/settings/#logging
 # See https://docs.djangoproject.com/en/dev/topics/logging for
 # more details on how to customize your logging configuration.
+LOG_LEVEL = env("LOG_LEVEL")
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
+    "filters": {"require_debug_false": {"()": "django.utils.log.RequireDebugFalse"}},
     "formatters": {
         "verbose": {
-            "format": "{levelname} {asctime} {module} {process:d} {thread:d} {message}",
-            "style": "{",
+            "format": "%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s",
         },
         "simple": {
-            "format": "{levelname} {message}",
-            "style": "{",
+            "format": "%(levelname)s %(message)s",
         },
-        # "json": {
-        #     "format": '{"timestamp": "%(asctime)s", "level": "%(levelname)s", "module": "%(module)s", "message": "%(message)s"}',
-        #     "style": "{",
-        # }, # FIXME
+        "request_id": {
+            "format": "%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s [%(request_id)s]",
+        },
     },
     "handlers": {
-        "console": {
-            "class": "logging.StreamHandler",
-            "formatter": "simple",
+        "mail_admins": {
+            "level": "ERROR",
+            "filters": ["require_debug_false"],
+            "class": "django.utils.log.AdminEmailHandler",
         },
+        "console": {"class": "civil_registry.core.loggers.StructLogHandler"},
         "file": {
             "class": "logging.handlers.RotatingFileHandler",
             "filename": str(
-                BASE_DIR / "logs/app.log"
+                BASE_DIR / "logs/app.log",
             ),  # XXX: Must create logs directory
             "maxBytes": 1024 * 1024 * 5,  # 5 MB
             "backupCount": 5,
-            # "formatter": "json",
+            "formatter": "verbose",
+        },
+        "request_file": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": str(
+                BASE_DIR / "logs/app.log",
+            ),
+            "maxBytes": 1024 * 1024 * 5,  # 5 MB
+            "backupCount": 5,
+            "formatter": "request_id",
         },
     },
-    "root": {
-        "handlers": ["console", "file"],
-        "level": "DEBUG",
-    },
+    "root": {"level": "INFO", "handlers": ["console", "file"]},
+    "overridable": [],
     "loggers": {
-        "django": {
-            "handlers": ["console", "file"],
-            "level": "INFO",
+        "django.request": {
+            "handlers": ["mail_admins"],
+            "level": "ERROR",
+            "propagate": True,
+        },
+        "django.security.DisallowedHost": {
+            "level": "ERROR",
+            "handlers": ["console", "mail_admins"],
             "propagate": True,
         },
         "core": {
-            "handlers": ["console", "file"],
+            "handlers": ["file"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "core.requests": {
+            "handlers": ["request_file"],
             "level": "DEBUG",
             "propagate": False,
         },
@@ -225,10 +245,10 @@ REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_THROTTLE_CLASSES": ["rest_framework.throttling.UserRateThrottle"],
     "DEFAULT_THROTTLE_RATES": {
-        "user": "100/day"  # Limit each user to 100 requests per day
+        "user": "100/day",  # Limit each user to 100 requests per day
     },
     "EXCEPTION_HANDLER": "civil_registry.core.exceptions.custom_exception_handler",
-    "NON_FIELD_ERRORS_KEY": "error_message",
+    "NON_FIELD_ERRORS_KEY": "detail",
 }
 
 # django-cors-headers - https://github.com/adamchainz/django-cors-headers#setup
@@ -243,3 +263,8 @@ SPECTACULAR_SETTINGS = {
     "SERVE_PERMISSIONS": ["rest_framework.permissions.AllowAny"],
     "SCHEMA_PATH_PREFIX": "/api/",
 }
+
+REDIS_URL = "redis://localhost:6379/0"
+
+CELERY_BROKER_URL = "redis://localhost:6379/0"
+CELERY_RESULT_BACKEND = "redis://localhost:6379/0"
