@@ -64,7 +64,7 @@ The API will be accessible at `http://127.0.0.1:8000/`.
 
 ## API Endpoint
 
-**POST /api/national-id/**
+**POST /api/validate/**
 
 **Request Headers:**
 
