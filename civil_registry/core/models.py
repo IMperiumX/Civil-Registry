@@ -19,8 +19,8 @@ logger = logging.getLogger("core")
 class NationalID(ABC):
     id_number: str
     birth_date: datetime.date = None
-    governorate: str = None
-    gender: str = None
+    governorate: str | None = None
+    gender: str | None = None
 
     def __post_init__(self):
         logger.debug("Extracting information from %s", self)
