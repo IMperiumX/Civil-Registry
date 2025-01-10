@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime
-from datetime import timezone
 from hashlib import md5 as _md5
 from typing import Any
 
@@ -18,5 +17,5 @@ def md5_text(*args: Any):
 
 def freeze_time(t: str | datetime | None = None) -> time_machine.travel:
     if t is None:
-        t = datetime.now(timezone.UTC)
+        t = datetime.now(datetime.UTC)
     return time_machine.travel(t, tick=False)
