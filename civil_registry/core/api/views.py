@@ -26,30 +26,36 @@ class NationalIDView(APIView):
     rate_limits = {
         "POST": {
             RateLimitCategory.IP: RateLimit(limit=5, window=1),
-            RateLimitCategory.USER: RateLimit(limit=5, window=86400),
+            RateLimitCategory.USER: RateLimit(limit=10, window=1),
         },
     }
     track_endpoint = True
 
     def post(self, request):
-        # XXX: Could be moved to a Middleware to enforce rate limits
-        rate_limit = self.rate_limits.get("POST", {}).get(RateLimitCategory.USER)
-        ratelimiter = RedisRateLimiter()
-        limit = rate_limit.limit
-        if limit and ratelimiter.is_limited(
-            f"id-validate:{request.user.id}",
-            limit=limit,
-            window=rate_limit.window,  # 10 per day should be fine
-        ):
-            ratelimiter.reset(f"id-validate:{request.user.id}")
-            return Response(
-                {
-                    "detail": "You are attempting to create too many organizations too quickly.",
-                },
-                status=429,
-            )
-
         try:
+            # XXX: Could be moved to a middleware to enforce more configurable ratelimiting
+            rate_limit = self.rate_limits.get("POST", {}).get(RateLimitCategory.USER)
+            ratelimiter = RedisRateLimiter()
+            limit = rate_limit.limit
+            window = rate_limit.window
+            key = f"id-validate:{request.user.id}"
+            if limit and ratelimiter.is_limited(
+                key,
+                limit=limit,
+                window=window,
+            ):
+                logger.debug(
+                    "core.api.rate-limit.exceeded Key: %s Limit: %s Window: %s",
+                    key,
+                    limit,
+                    window,
+                )
+                return Response(
+                    {
+                        "detail": "You are attempting to validate too many IDs. Please try again later.",
+                    },
+                    status=429,
+                )
             data = {
                 "is_valid": False,
                 "id_number": request.data.get("id_number"),
