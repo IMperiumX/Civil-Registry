@@ -85,15 +85,19 @@ class NationalIDView(APIView):
                 output_serializer.errors,
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        except InvalidCenturyDigitError as e:
+
+        except (InvalidCenturyDigitError, InvalidBirthDateError) as e:
             data["detail"] = str(e)
             return Response(
                 data,
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        except InvalidBirthDateError as e:
-            data["detail"] = str(e)
+        except Exception:
+            logger.exception(
+                "An unexpected error occurred:",
+            )
+            data["detail"] = "An unexpected error occurred. Please try again later."
             return Response(
                 data,
-                status=status.HTTP_400_BAD_REQUEST,
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
