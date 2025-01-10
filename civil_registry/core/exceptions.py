@@ -40,6 +40,14 @@ class InvalidCenturyDigitError(Exception):
         )
 
 
+class InvalidGovernorateCodeError(Exception):
+    """Raised when the governorate code is invalid."""
+
+    def __init__(self, gov_code):
+        self.gov_code = gov_code
+        super().__init__(f"Invalid governorate code: {gov_code}.")
+
+
 class InvalidBirthDateError(Exception):
     """Raised when the birth date is invalid."""
 
