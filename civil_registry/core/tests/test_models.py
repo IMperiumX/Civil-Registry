@@ -8,7 +8,8 @@ from civil_registry.core.exceptions import InvalidCenturyDigitError
 from civil_registry.core.exceptions import InvalidNationalIDError
 from civil_registry.core.models import ApiCall
 from civil_registry.core.models import EgyptianNationalID
-from civil_registry.core.tests.factories import ApiCallFactory
+
+from .factories import ApiCallFactory
 
 
 def test_valid_egyptian_national_id():
