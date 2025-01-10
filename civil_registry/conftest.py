@@ -1,8 +1,11 @@
 import logging
+from unittest.mock import Mock
 
 import fakeredis
 import pytest
 
+from civil_registry.core.middleware.apitrack import APICallTrackingMiddleware
+from civil_registry.core.middleware.requestid import RequestIDMiddleware
 from civil_registry.core.ratelimit import RedisRateLimiter
 
 
@@ -19,6 +22,50 @@ def pytest_configure():
         for middleware in settings.MIDDLEWARE
         if "RequestIDMiddleware" not in middleware
     ]
+
+
+@pytest.fixture
+def api_call_data():
+    return {
+        "path": "/test-path",
+        "request_id": "test_request_id",
+        "method": "GET",
+        "user_id": 1,
+        "user_agent": "test-agent",
+        "status_code": 200,
+        "response_data": {"id_number": "12345", "detail": "test detail"},
+    }
+
+
+@pytest.fixture
+def get_response():
+    return Mock()
+
+
+@pytest.fixture
+def apitrack_middleware(get_response):
+    return APICallTrackingMiddleware(get_response)
+
+
+@pytest.fixture
+def requestid_middleware(get_response):
+    return RequestIDMiddleware(get_response)
+
+
+@pytest.fixture
+def requestid_request():
+    req = Mock()
+    req.headers = {}
+    req.method = "GET"
+    req.path = "/test-path"
+    return req
+
+
+@pytest.fixture
+def response():
+    res = Mock()
+    res.status_code = 200
+    return res
 
 
 @pytest.fixture
