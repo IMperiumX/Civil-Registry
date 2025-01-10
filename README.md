@@ -1,6 +1,8 @@
 
 # Egyptian National ID Validator API
 
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+
 This is a Django REST Framework API for validating and extracting information from Egyptian National IDs.
 
 ## Features
@@ -16,14 +18,14 @@ This is a Django REST Framework API for validating and extracting information fr
 * Python 3.11+
 * Django 5.0+
 * Django REST Framework 3.15+
-* Other dependencies listed in `requirements.txt`
+* Other dependencies listed in `requirements`
 
 ## Installation
 
 1. Clone the repository:
 
     ```bash
-    git clone git@github.com/imperiumx/civil_registry.git
+    git clone git@github.com:IMperiumX/civil-registry.git
     cd civil_registry
     ```
 
@@ -41,30 +43,55 @@ This is a Django REST Framework API for validating and extracting information fr
     pip install -r requirements/local.txt
     ```
 
-4. Set up the database (using SQLite by default):
+4. Create a new PostgreSQL database using `createdb`:
 
     ```bash
-    python manage.py makemigrations
+    createdb --username=postgres <DB name>
+    ```
+
+    > [!NOTE]
+      if this is the first time a database is created on your machine you might need an [initial PostgreSQL set](https://web.archive.org/web/20190303010033/http://suite.opengeo.org/docs/latest/dataadmin/pgGettingStarted/firstconnect.html) up to allow local connections & set a password for the `postgres` user. The [postgres documentation](https://www.postgresql.org/docs/current/static/auth-pg-hba-conf.html) explains the syntax of the config file that you need to change.
+
+5. Set the environment variables for your database(s):
+
+    ```bash
+    export DATABASE_URL=postgres://postgres:<password>@127.0.0.1:5432/<DB name given to createdb>
+    ```
+
+    **OR**
+
+    ```bash
+    cp .env.sample .env
+    ```
+
+    > [!NOTE]
+      To help setting up your environment variables, you have a few options:
+      create an `.env` file in the root of your project and define all the variables you need in it. Then you just need to have `DJANGO_READ_DOT_ENV_FILE=True` in your machine and all the variables will be read.
+      Use a local environment manager like [direnv](https://direnv.net/)
+
+6. Apply migrations:
+
+    ```bash
     python manage.py migrate
     ```
 
-5. Create a superuser (to access Django admin and generate API keys):
+7. Start Django development server:
+
+   ```bash
+   python manage.py runserver 0.0.0.0:8000
+   ```
+
+   The API will be accessible at `http://127.0.0.1:8000/api/docs`.
+
+8. Create a superuser (to access Django admin and generate API keys):
 
     ```bash
     python manage.py createsuperuser
     ```
 
-## Running the Application
-
-```bash
-python manage.py runserver
-```
-
-The API will be accessible at `http://127.0.0.1:8000/`.
-
 ## API Endpoint
 
-**POST /api/validate/**
+## POST /api/validate/
 
 **Request Headers:**
 
@@ -74,7 +101,7 @@ The API will be accessible at `http://127.0.0.1:8000/`.
 
 ```json
 {
-  "national_id": "29001011234567"
+  "id_number": "29001011234567"
 }
 ```
 
@@ -83,10 +110,10 @@ The API will be accessible at `http://127.0.0.1:8000/`.
 ```json
 {
   "is_valid": true,
-  "id_number": "23301011294197",
-  "birth_date": "1933-01-01",
+  "id_number": "29001011234567",
+  "birth_date": "1990-01-01",
   "governorate": "Dakahlia",
-  "gender": "Male",
+  "gender": "Female",
   "detail": ""
 }
 ```
@@ -95,9 +122,9 @@ The API will be accessible at `http://127.0.0.1:8000/`.
 
 ```json
 {
-  "national_id": [
-    "This field must be 14 digits."
-  ]
+  "is_valid": false,
+  "id_number": "932028345643771",
+  "detail": "National ID must be a 14-digit number."
 }
 ```
 
@@ -106,28 +133,58 @@ The API will be accessible at `http://127.0.0.1:8000/`.
 ```json
 {
   "is_valid": false,
-  "id_number": "123301011294197",
+  "id_number": "290010112345671",
   "detail": "National ID must be a 14-digit number."
 }
 ```
 
 ## API Key Generation
 
-1. Log in to the Django admin panel (`http://127.0.0.1:8000/admin/`).
-2. Go to "Tokens" and create a new token for a user.
-3. Copy the generated token key and use it in the `Authorization` header for API requests.
+### POST /api/auth-token/
 
-## Notes
+**Request Body (JSON):**
 
-* The governorate extraction logic needs to be completed with a proper mapping of codes to governorate names.
-* You can adjust the rate limiting in `settings.py`.
-* For production, consider using a more robust database like PostgreSQL or MySQL.
-* For enhanced security, you could create a custom `APIKey` model (instead of DRF's `Token`) with features like key expiry, usage limits, etc.
-
-## Testing
-
-```bash
-python manage.py test civil_registery
+```json
+{
+  "username": "string",
+  "password": "string"
+}
 ```
 
-Make sure the development server is not running when executing the tests.
+**Response (200 OK):**
+
+```json
+{
+  "token": "<drf_token>"
+}
+```
+
+### Test coverage
+
+To run the tests, check your test coverage, and generate an HTML coverage report:
+
+```bash
+coverage run -m pytest
+coverage html
+open htmlcov/index.html
+```
+
+#### Running tests with pytest
+
+```bash
+pytest
+```
+
+### Celery
+
+This app comes with Celery.
+
+To run a celery worker:
+
+```bash
+cd civil_registry
+celery -A config.celery_app worker -l info
+```
+
+> [!NOTE]
+  Please note: For Celery's import magic to work, it is important _where_ the celery commands are run. If you are in the same folder with _manage.py_, you should be right.
