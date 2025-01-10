@@ -145,6 +145,7 @@ class ApiCall(models.Model):
     status_code = models.IntegerField()
     client_ip = models.GenericIPAddressField(null=True, blank=True)
     user_agent = models.CharField(max_length=255, blank=True, default="")
+    processing_time = models.FloatField(null=True, blank=True)
 
     class Meta:
         ordering = ["-timestamp"]
