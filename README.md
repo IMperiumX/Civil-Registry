@@ -1,6 +1,7 @@
 
 # Egyptian National ID Validator API
 
+[![.github/workflows/main.yml](https://github.com/IMperiumX/Civil-Registry/actions/workflows/main.yml/badge.svg)](https://github.com/IMperiumX/Civil-Registry/actions/workflows/main.yml)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
 This is a Django REST Framework API for validating and extracting information from Egyptian National IDs.
