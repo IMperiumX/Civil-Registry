@@ -32,9 +32,11 @@ class RequestIDMiddleware:
         )  # Get from header or generate
 
         request.request_id = request_id
-        msg = f"Request started: {request.method} {request.path}"
+
         logger.debug(
-            msg,
+            "Request started: %s %s",
+            request.method,
+            request.path,
             extra={"request_id": request_id},
         )
 
@@ -43,9 +45,11 @@ class RequestIDMiddleware:
         Log the request ID, method, path, and status code.
         """
         request_id = getattr(request, "request_id", "unknown")
-        msg = f"Request finished: {request.method} {request.path}, Status: {response.status_code}"
         logger.debug(
-            msg,
+            "Request finished: %s %s, Status: %s",
+            request.method,
+            request.path,
+            response.status_code,
             extra={"request_id": request_id},
         )
         return response
