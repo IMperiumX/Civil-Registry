@@ -1,22 +1,7 @@
 from unittest.mock import Mock
 from unittest.mock import patch
 
-import pytest
-
 from civil_registry.core.tasks import create_api_call_record
-
-
-@pytest.fixture
-def api_call_data():
-    return {
-        "path": "/test-path",
-        "request_id": "test_request_id",
-        "method": "GET",
-        "user_id": 1,
-        "user_agent": "test-agent",
-        "status_code": 200,
-        "response_data": {"id_number": "12345", "detail": "test detail"},
-    }
 
 
 @patch("civil_registry.core.tasks.ApiCall.objects.create")
