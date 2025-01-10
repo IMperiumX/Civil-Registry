@@ -1,6 +1,0 @@
-- name: Codecov
-  # You may pin to the exact commit or the version.
-  # uses: codecov/codecov-action@1e68e06f1dbfde0e4cefc87efeba9e4643565303
-  uses: codecov/codecov-action@v5
-  with:
-    token: ${{ secrets.CODECOV_TOKEN }}
