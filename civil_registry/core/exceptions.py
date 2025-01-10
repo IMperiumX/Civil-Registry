@@ -2,9 +2,6 @@ import logging
 
 from rest_framework.views import exception_handler
 
-from .constants import MAX_CENTURY_DIGIT
-from .constants import MIN_CENTURY_DIGIT
-
 logger = logging.getLogger("core")
 
 
@@ -21,24 +18,16 @@ def custom_exception_handler(exc, context):
     return response
 
 
-class InvalidNationalIDLengthError(Exception):
+class InvalidNationalIDError(Exception):
     """Raised when the national ID length is invalid."""
 
     def __init__(self, id_number, expected_length):
         self.id_number = id_number
         self.expected_length = expected_length
         super().__init__(
-            f"Invalid national ID length: {len(id_number)}. "
-            f"Expected {expected_length} digits.",
+            "National ID must be a 14-digit number. But got %s.",
+            id_number,
         )
-
-
-class InvalidNationalIDCharactersError(Exception):
-    """Raised when the national ID contains invalid characters."""
-
-    def __init__(self, id_number):
-        self.id_number = id_number
-        super().__init__(f"Invalid national ID: {id_number}. Only digits are allowed.")
 
 
 class InvalidCenturyDigitError(Exception):
@@ -47,8 +36,7 @@ class InvalidCenturyDigitError(Exception):
     def __init__(self, century_digit):
         self.century_digit = century_digit
         super().__init__(
-            f"Invalid century digit: {century_digit}. "
-            f"Must be between {MIN_CENTURY_DIGIT} and {MAX_CENTURY_DIGIT}.",
+            f"Invalid century digit: {century_digit}. Must be between 2 and 3.",
         )
 
 
