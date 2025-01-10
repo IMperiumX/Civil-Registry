@@ -23,7 +23,7 @@ class NationalID(ABC):
     gender: str = None
 
     def __post_init__(self):
-        logger.debug("Extracting information from the National ID %s", self)
+        logger.debug("Extracting information from %s", self)
         # Ensure the ID is valid
         self.validate()
 
@@ -75,7 +75,7 @@ class EgyptianNationalID(NationalID):
         if not id_number:
             raise InvalidNationalIDError(self.id_number, self.ID_LENGTH)
 
-        object.__setattr__(self, "id_number", id_number.string)
+        object.__setattr__(self, "id_number", id_number.group())
 
     def extract_birth_date(self):
         """Extracts the birth date from the National ID."""
