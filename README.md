@@ -96,6 +96,7 @@ This is a Django REST Framework API for validating and extracting information fr
 **Request Headers:**
 
 * `Authorization`: `Token <your_api_key>`
+* `Authorization`: `Bearer <JWT_token>`
 
 **Request Body (JSON):**
 
@@ -139,6 +140,26 @@ This is a Django REST Framework API for validating and extracting information fr
 ```
 
 ## API Key Generation
+<!-- JWT -->
+### POST /api/token/ (JWT)
+
+**Request Body (JSON):**
+
+```json
+{
+  "username": "string",
+  "password": "string"
+}
+```
+
+**Response (200 OK):**
+
+```json
+{
+  "refresh": "<jwt_refresh>",
+  "access": "<jwt_access>"
+}
+```
 
 ### POST /api/auth-token/
 
