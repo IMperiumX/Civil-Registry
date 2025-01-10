@@ -1,9 +1,9 @@
-import json
 import logging
+import time
 
-from civil_registry.core.models import APICall
+from civil_registry.core.tasks import create_api_call_record
 
-logger = logging.getLogger("core")
+logger = logging.getLogger("core.requests")
 
 
 class APICallTrackingMiddleware:
@@ -15,49 +15,55 @@ class APICallTrackingMiddleware:
         return self.process_response(request, response)
 
     def process_view(self, request, view_func, view_args, view_kwargs):
-        # Only track specific endpoints, e.g., NationalIDView
         try:
             view_class = getattr(view_func, "view_class", None)
             if not view_class:
                 return
 
+            # Only track specific endpoints that have the `track_endpoint` attribute set to True
             track_endpoint = getattr(view_class, "track_endpoint", False)
             if not track_endpoint:
                 return
-            request.api_call_data = {
-                "endpoint": request.path,
-                "request_data": json.loads(request.body),
-            }
+
+            request.is_trackable = True
         except Exception:
             logging.exception(
                 "Error during API tracking, failing open. THIS SHOULD NOT HAPPEN",
+                extra={"request_id": request.request_id},
             )
 
     def process_response(self, request, response):
-        if hasattr(request, "api_call_data"):
-            api_call_data = request.api_call_data
-            status_code = response.status_code
+        if hasattr(request, "is_trackable") and not request.is_trackable:
+            return response
+        # XXX: case of a rate limited request?
+        try:
+            data = {
+                "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+                "request_id": request.request_id,
+                "request_method": request.method,
+                "path": request.path,
+                "user_id": request.user.id if request.user.is_authenticated else None,
+                "status_code": response.status_code,
+                "client_ip": self._get_client_ip(request),
+                "user_agent": request.headers.get("user-agent"),
+                "id_number": response.data.get("id_number", ""),
+                "detail": response.data.get("detail"),
+            }
 
-            id_number = None
-            detail = ""
-            response_data = None
-
-            if hasattr(response, "data"):
-                response_data = response.data
-                id_number = response.data.get("id_number")
-                detail = response.data.get("detail")
-
-            try:
-                APICall.objects.create(
-                    user=request.user if request.user.is_authenticated else None,
-                    endpoint=api_call_data["endpoint"],
-                    id_number=id_number,
-                    request_data=api_call_data["request_data"],
-                    response_data=response_data,
-                    status_code=status_code,
-                    detail=detail,
-                )
-            except Exception:
-                logger.exception("Error saving APICall:")
-
+            # Asynchronously log the data using Celery
+            create_api_call_record.delay(data)
+        except Exception:
+            logger.exception(
+                "Error during API tracking, failing open. THIS SHOULD NOT HAPPEN",
+                extra={"request_id": request.request_id},
+            )
+            return response
         return response
+
+    def _get_client_ip(self, request):
+        x_forwarded_for = request.headers.get("x-forwarded-for")
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(",")[0]
+        else:
+            ip = request.META.get("REMOTE_ADDR")
+        return ip
