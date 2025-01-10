@@ -1,8 +1,10 @@
 import logging
 from dataclasses import asdict
+from typing import Any
 
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -23,22 +25,23 @@ class NationalIDView(APIView):
     permission_classes = [IsAuthenticated]
     serializer_class = NationalIDInputSerializer
 
-    rate_limits = {
+    rate_limits: dict[str, dict[RateLimitCategory, RateLimit]] = {
         "POST": {
             RateLimitCategory.IP: RateLimit(limit=5, window=1),
             RateLimitCategory.USER: RateLimit(limit=10, window=1),
         },
     }
-    track_endpoint = True
+    track_endpoint: bool = True
 
-    def post(self, request):
+    def post(self, request: Request) -> Response:
         try:
-            # XXX: Could be moved to a middleware to be more flexible
-            rate_limit = self.rate_limits.get("POST", {}).get(RateLimitCategory.USER)
+            rate_limit: RateLimit = self.rate_limits.get("POST", {}).get(
+                RateLimitCategory.USER,
+            )
             ratelimiter = RedisRateLimiter()
-            limit = rate_limit.limit
-            window = rate_limit.window
-            key = f"id-validate:{request.user.id}"
+            limit: int = rate_limit.limit
+            window: int = rate_limit.window
+            key: str = f"id-validate:{request.user.id}"
             if limit and ratelimiter.is_limited(
                 key,
                 limit=limit,
@@ -56,7 +59,7 @@ class NationalIDView(APIView):
                     },
                     status=429,
                 )
-            data = {
+            data: dict[str, Any] = {
                 "is_valid": False,
                 "id_number": request.data.get("id_number"),
                 "detail": "",
@@ -68,7 +71,7 @@ class NationalIDView(APIView):
                 data["detail"] = serializer.errors.get("id_number")[0]
                 return Response(data, status=status.HTTP_400_BAD_REQUEST)
 
-            id_number = serializer.validated_data["id_number"]
+            id_number: str = serializer.validated_data["id_number"]
             egyptian_national_id = EgyptianNationalID(id_number)
             output_serializer = NationalIDSerializer(data=asdict(egyptian_national_id))
 
