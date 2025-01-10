@@ -33,7 +33,7 @@ class NationalIDView(APIView):
 
     def post(self, request):
         try:
-            # XXX: Could be moved to a middleware to enforce more configurable ratelimiting
+            # XXX: Could be moved to a middleware to be more flexible
             rate_limit = self.rate_limits.get("POST", {}).get(RateLimitCategory.USER)
             ratelimiter = RedisRateLimiter()
             limit = rate_limit.limit
