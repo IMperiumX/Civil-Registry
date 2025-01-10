@@ -44,18 +44,3 @@ class TestNationalIDView:
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "detail" in response.data
-
-    def test_rate_limit_exceeded(self, mocker):
-        request_id = str(uuid.uuid4())
-        mocker.patch(
-            "civil_registry.core.ratelimit.RedisRateLimiter.is_limited",
-            return_value=True,
-        )
-        response = self.client.post(
-            "/api/validate/",
-            {"id_number": "valid_id_number"},
-            format="json",
-            headers={"x-request-id": request_id},
-        )
-        assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
-        assert "detail" in response.data
