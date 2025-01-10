@@ -1,14 +1,14 @@
 from django.core.validators import RegexValidator
 from rest_framework import serializers
 
-from civil_registry.core.constants import ID_REGEX
+from civil_registry.core.models import EgyptianNationalID
 
 
 class NationalIDInputSerializer(serializers.Serializer):
     id_number = serializers.CharField(
         validators=[
             RegexValidator(
-                ID_REGEX,
+                EgyptianNationalID.ID_REGEX,
                 "National ID must be a 14-digit number.",
             ),
         ],
