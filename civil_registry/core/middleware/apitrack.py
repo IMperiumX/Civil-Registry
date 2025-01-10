@@ -63,7 +63,7 @@ class APICallTrackingMiddleware:
                 "user_agent": request.headers.get("user-agent"),
                 "id_number": response.data.get("id_number", ""),
                 "detail": response.data.get("detail"),
-                "processing_time_ms": processing_time,
+                "processing_time": processing_time,
             }
 
             # Asynchronously log the data using Celery
