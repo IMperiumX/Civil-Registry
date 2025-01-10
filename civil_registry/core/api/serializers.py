@@ -36,5 +36,6 @@ class NationalIDSerializer(serializers.Serializer):
             "detail",
         ]
 
-    def get_is_valid(self, obj):
-        return not bool(obj.get("detail"))
+    def get_is_valid(self, obj: dict):
+        detail = obj.get("detail")
+        return detail is None or not bool(detail)
