@@ -15,7 +15,6 @@ class RequestIDMiddleware:
     def __call__(self, request):
         # Code to be executed for each request before
         # the view (and later middleware) are called.
-        response = None
 
         response = self.process_request(request)
         response = response or self.get_response(request)
@@ -42,6 +41,7 @@ class RequestIDMiddleware:
     def process_response(self, request, response):
         """
         Log the request ID, method, path, and status code.
+        Add the request ID to the response headers.
         """
         request_id = getattr(request, "request_id", "unknown")
         logger.debug(
@@ -51,6 +51,10 @@ class RequestIDMiddleware:
             response.status_code,
             extra={"request_id": request_id},
         )
+
+        # Add request ID to response headers
+        response["X-Request-ID"] = request_id
+
         return response
 
     def process_exception(self, request, exception):
@@ -58,5 +62,10 @@ class RequestIDMiddleware:
         Log the request ID and exception details if an exception occurs.
         """
         request_id = getattr(request, "request_id", "unknown")
-        msg = f"Exception during request: {request_id}, Exception: {exception}"
-        logger.exception(msg)
+        # Log the exception with traceback
+        logger.exception(
+            "Exception during request: %s",
+            request_id,
+            exc_info=True,  # Include traceback
+            extra={"request_id": request_id},
+        )
