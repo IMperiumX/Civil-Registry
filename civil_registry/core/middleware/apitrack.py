@@ -1,6 +1,8 @@
 import logging
 import time
 
+from rest_framework import status
+
 from civil_registry.core.tasks import create_api_call_record
 
 logger = logging.getLogger("core.requests")
@@ -26,6 +28,7 @@ class APICallTrackingMiddleware:
                 return
 
             request.is_trackable = True
+            request.start_time = time.time()
         except Exception:
             logging.exception(
                 "Error during API tracking, failing open. THIS SHOULD NOT HAPPEN",
@@ -33,10 +36,22 @@ class APICallTrackingMiddleware:
             )
 
     def process_response(self, request, response):
-        if hasattr(request, "is_trackable") and not request.is_trackable:
+        if not (hasattr(request, "is_trackable") and request.is_trackable):
             return response
-        # XXX: case of a rate limited request?
+
         try:
+            # Handle rate-limited requests (don't track them)
+            if response.status_code == status.HTTP_429_TOO_MANY_REQUESTS:
+                return response
+
+            # Calculate request processing time
+            end_time = time.time()
+            processing_time = (
+                (end_time - request.start_time) * 1000
+                if hasattr(request, "start_time")
+                else None
+            )
+
             data = {
                 "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
                 "request_id": request.request_id,
@@ -48,6 +63,7 @@ class APICallTrackingMiddleware:
                 "user_agent": request.headers.get("user-agent"),
                 "id_number": response.data.get("id_number", ""),
                 "detail": response.data.get("detail"),
+                "processing_time_ms": processing_time,
             }
 
             # Asynchronously log the data using Celery
@@ -57,7 +73,6 @@ class APICallTrackingMiddleware:
                 "Error during API tracking, failing open. THIS SHOULD NOT HAPPEN",
                 extra={"request_id": request.request_id},
             )
-            return response
         return response
 
     def _get_client_ip(self, request):
