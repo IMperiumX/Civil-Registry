@@ -15,7 +15,6 @@ class RequestIDMiddleware:
     def __call__(self, request):
         # Code to be executed for each request before
         # the view (and later middleware) are called.
-        # process_view is automatically called by Django
         response = None
 
         response = self.process_request(request)
