@@ -15,10 +15,6 @@ logger = logging.getLogger(__name__)
 
 
 class RateLimiter:
-    __all__ = ("is_limited", "validate", "current_value", "is_limited_with_value")
-
-    window = 60
-
     def is_limited(
         self,
         key: str,
@@ -70,8 +66,9 @@ class RedisRateLimiter(RateLimiter):
     Suitable for distributed rate limiting across multiple servers.
     """
 
-    def __init__(self, **options: Any) -> None:
+    def __init__(self, window: int = 60, **options: Any) -> None:
         self.client: StrictRedis[str] = StrictRedis.from_url(settings.REDIS_URL)
+        self.window = window
 
     def _construct_redis_key(
         self,
@@ -92,8 +89,9 @@ class RedisRateLimiter(RateLimiter):
             request_time = time()
 
         key_hex = md5_text(key).hexdigest()
+        time_bucket = _time_bucket(request_time, window)
 
-        return f"rl:{key_hex}"
+        return f"rl:{key_hex}:{time_bucket}"
 
     def validate(self) -> None:
         try:
@@ -140,7 +138,11 @@ class RedisRateLimiter(RateLimiter):
         request_time = time()
         if window is None or window == 0:
             window = self.window
-        redis_key = self._construct_redis_key(key, window=window)
+        redis_key = self._construct_redis_key(
+            key,
+            window=window,
+            request_time=request_time,
+        )
 
         expiration = window - int(request_time % window)
         # Reset Time = next time bucket's start time
@@ -150,6 +152,12 @@ class RedisRateLimiter(RateLimiter):
             pipe.incr(redis_key)
             pipe.expire(redis_key, expiration)
             pipeline_result = pipe.execute()
+
+            # Handle potential None result (unlikely with incr and expire)
+            if None in pipeline_result:
+                logger.warning("Redis pipeline returned None for one of the commands.")
+                return False, 0, reset_time
+
             result = pipeline_result[0]
         except RedisError:
             # We don't want rate limited endpoints to fail when ratelimits
