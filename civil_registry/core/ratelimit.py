@@ -11,7 +11,7 @@ from redis.exceptions import RedisError
 from civil_registry.core.exceptions import InvalidConfigurationError
 from civil_registry.core.utils import md5_text
 
-logger = logging.getLogger("core.api.rate-limit")
+logger = logging.getLogger(__name__)
 
 
 class RateLimiter:
@@ -65,6 +65,11 @@ def _bucket_start_time(bucket_number: int, window: int) -> int:
 
 
 class RedisRateLimiter(RateLimiter):
+    """
+    RateLimiter implementation using Redis as the backend storage for rate limiting.
+    Suitable for distributed rate limiting across multiple servers.
+    """
+
     def __init__(self, **options: Any) -> None:
         self.client: StrictRedis[str] = StrictRedis.from_url(settings.REDIS_URL)
 
@@ -76,7 +81,7 @@ class RedisRateLimiter(RateLimiter):
     ) -> str:
         """
         Construct a rate limit key using the args given. Key will have a format of:
-        "rl:<key_hex>:[project?<project_id>:]<time_bucket>"
+        "rl:<key_hex>:<time_bucket>"
         where the time bucket is calculated by integer dividing the current time by the window
         """
 
